@@ -9,13 +9,22 @@ import Foundation
 import AVFAudio
 import Qwen3ASR
 
+
 // Load the model (downloads from HuggingFace on first use)
 let model = try await Qwen3ASRModel.fromPretrained(modelId:"aufklarer/Qwen3-ASR-1.7B-MLX-8bit", offlineMode: true)
-let fileURL = Bundle.main.url(forResource: "audio", withExtension: "wav")!
+let fileURL = Bundle.main.url(forResource: "segment-00006", withExtension: "wav")!
+let samples = try loadAudioSamples(from: fileURL)
 // Transcribe an audio file
-let result = model.transcribe(audio: try loadAudioSamples(from: fileURL),language: "wu")
+let result = model.transcribe(audio: samples,language: "ja")
 print(result)
-
+let alignModel = try await Qwen3ForcedAligner.fromPretrained(modelId:"aufklarer/Qwen3-ForcedAligner-0.6B-8bit",offlineMode:true);
+let aligned = alignModel.align(audio: samples, text: result, language:"ja")
+for word in aligned {
+    print(word.startTime)
+    print(word.endTime)
+    print(word.text)
+}
+           
 func loadAudioSamples(from url: URL, targetSampleRate: Double = 16000) throws -> [Float] {
     // 1. 打开音频文件
     let audioFile = try AVAudioFile(forReading: url)
